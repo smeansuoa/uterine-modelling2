@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+
+# usage: chaste-simulation <dim>
+# Runs the chaste simulation, renames the log file and annotates data
+
+echo "Hello World!"
+
+if [[ $# -ne 1 ]]; then
+	echo "Error: missing simulation dimension"
+	echo "usage: chaste-simulation <dim>"
+	exit
+fi
+
+cd ${CHASTE_BUILD_DIR}/projects/uterus-modelling
+./apps/main $1
+
+if [[ $1 -eq 2 ]]; then
+	CONFIG=${CHASTE_MODELLING_CONFIG_DIR}2d_params.toml
+
+	
+
+elif [[ $1 -eq 3 ]]; then
+	CONFIG=${CHASTE_MODELLING_CONFIG_DIR}3d_params.toml
+
+#added in two cell types
+elif [[ $1 -eq 4 ]]; then
+	CONFIG=${CHASTE_MODELLING_CONFIG_DIR}2d_2type_params.toml
+
+#added in two cell types - 3d
+elif [[ $1 -eq 5 ]]; then
+	CONFIG=${CHASTE_MODELLING_CONFIG_DIR}3d_2type_params.toml
+fi
+
+echo "(chaste-simulation) Using " ${CONFIG}
+
+if [[ $1 -eq 4 ]]; then
+	#if more than one line in .toml file with "cell_type" below grep picks up only 1st instance
+	CELL_TYPE=$(grep -m 1 "cell_type =" $CONFIG | cut -d '"' -f 2)
+	CELL_TYPE2=$(grep -m 1 "cell_type2 =" $CONFIG | cut -d '"' -f 2)
+	SAVE_DIR=$(grep "save_dir =" $CONFIG | cut -d '"' -f 2)
+	STIMULUS=$(grep "stimulus_type =" $CONFIG | cut -d '"' -f 2)
+
+	CELL_TYPES=${CELL_TYPE}"_"${CELL_TYPE2}
+	echo "(chaste-simulation) cell types: " ${CELL_TYPES}
+
+	#if log directory doesn't exist create
+	if [ ! -d "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log" ]; then
+		echo " "
+		echo "log directory non-existent...creating:"
+		echo " "
+		echo "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log"
+		mkdir "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log" 
+	fi
+
+	#echo "log directory: " ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+
+	#cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+	cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log
+	#cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/${STIMULUS}
+	NB_FILES=$(printf "%0.3d" $(ls | wc -l))
+	mv log.log "simulation_${NB_FILES}.log"
+
+	cd ../$STIMULUS
+	SIM_RES_NAME="simulation_${NB_FILES}_res.vtu"
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ./$SIM_RES_NAME
+
+	#if ../results/ directory exists, copy results into it or create
+	if [ ! -d "../results" ]; then
+	    echo " "
+		echo "results directory non-existent...creating..."
+		mkdir "../results"
+	fi
+	
+	python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME	
+
+fi
+
+if [[ $1 -eq 5 ]]; then
+	#if more than one line in .toml file with "cell_type" below grep picks up only 1st instance
+	CELL_TYPE=$(grep -m 1 "cell_type =" $CONFIG | cut -d '"' -f 2)
+	CELL_TYPE2=$(grep -m 1 "cell_type2 =" $CONFIG | cut -d '"' -f 2)
+	SAVE_DIR=$(grep "save_dir =" $CONFIG | cut -d '"' -f 2)
+	STIMULUS=$(grep "stimulus_type =" $CONFIG | cut -d '"' -f 2)
+
+	CELL_TYPES=${CELL_TYPE}"_"${CELL_TYPE2}
+	echo "(chaste-simulation) cell types: " ${CELL_TYPES}
+
+	echo "(chaste-simulation) output dir: " ${CHASTE_TEST_OUTPUT}"/"${SAVE_DIR}
+
+	#if log directory doesn't exist create
+	if [ ! -d "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log" ]; then
+		echo " "
+		echo "log directory non-existent...creating:"
+		echo " "
+		echo "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log"
+		mkdir "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log" 
+	fi
+
+	#echo "log directory: " ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+
+	#cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+	cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/log
+	#cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/${STIMULUS}
+	NB_FILES=$(printf "%0.3d" $(ls | wc -l))
+	mv log.log "simulation_${NB_FILES}.log"
+
+	cd ../$STIMULUS
+	SIM_RES_NAME="simulation_${NB_FILES}_res.vtu"
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ./$SIM_RES_NAME
+
+	#if ../results/ directory exists, copy results into it or create
+	if [ ! -d "../results" ]; then
+	    echo " "
+		echo "results directory non-existent...creating..."
+		mkdir "../results"
+	fi
+	
+	python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME	
+
+	#test for conductivity modifier output
+	if [ -d "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}"_"${CELL_TYPE2}/${STIMULUS}_modifier" ]; then
+		echo " "
+		echo "modifier directory detected..."
+		echo "moving conductivity modifier .vtu file to current results directory..."
+		echo " "
+		cp "../${STIMULUS}_modifier/conductivity_mod.vtu" "../results/simulation_${NB_FILES}_conductivity_mod.vtu"
+	fi
+
+
+fi
+	
+
+if [[ $1 -eq 2  || $1 -eq 3 ]]; then
+	
+	CELL_TYPE=$(grep -m 1 "cell_type =" $CONFIG | cut -d '"' -f 2)
+	SAVE_DIR=$(grep "save_dir =" $CONFIG | cut -d '"' -f 2)
+	STIMULUS=$(grep "stimulus_type =" $CONFIG | cut -d '"' -f 2)
+
+	echo "(chaste-simulation) " ${CELL_TYPE}
+
+	#if log directory doesn't exist create
+	if [ ! -d "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log" ]; then
+		echo " "
+		echo "log directory non-existent...creating:"
+		echo " "
+		echo "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log"
+		mkdir "${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log" 
+	fi
+
+	#echo "log directory: " ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+
+	cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/log
+	#cd ${CHASTE_TEST_OUTPUT}/${SAVE_DIR}/${CELL_TYPE}/${STIMULUS}
+	NB_FILES=$(printf "%0.3d" $(ls | wc -l))
+	mv log.log "simulation_${NB_FILES}.log"
+
+	cd ../$STIMULUS
+	SIM_RES_NAME="simulation_${NB_FILES}_res.vtu"
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME
+	#python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ./$SIM_RES_NAME
+
+	#if ../results/ directory exists, copy results into it or create
+	if [ ! -d "../results" ]; then
+	    echo " "
+		echo "results directory non-existent...creating..."
+		mkdir "../results"
+	fi
+	
+	python3 ${CHASTE_SOURCE_DIR}/python/utils/AddVtuTimeAnnotations.py vtk_output/results.vtu ../results/$SIM_RES_NAME
+
+	
+
+		
+
+fi
